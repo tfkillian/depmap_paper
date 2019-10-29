@@ -1,5 +1,5 @@
 ---
-title: "Exploiting the Depmap cancer dependency data using R manipulation tools"
+title: "Exploiting the Depmap cancer dependency data using the depmap R package"
 author:
 - name: Theo Killian
   affiliation: Computational Biology, UCLouvain
@@ -17,35 +17,21 @@ vignette: >
 
 ```{r style, echo = FALSE, results = 'asis'}
 BiocStyle::markdown()
-
-# Abstract
-
-# Keywords
-
-# Introduction
-
-# Methods
-
-# Discussion and outlook
-
-# Software availability
-
-# Acknowledgements
-
-# References
 ```
 
 # Abstract
 
-The Depmap project is a multi-year collaborative effort by the Broad Institute
-and other associated organizations to map genetic and chemical dependencies of
-hundreds of cancer cell lines. The depmap R package has formatted this data,
-facilitating easy access with popular R data analysis and visualizing tools such
-as `dplyr` and `ggplot2`. The depmap R package utilizes `ExperimentHub`, storing
-versions of the Depmap data accessible from the Cloud, with the aim to provide a
-reproducible research framework to support exploiting this data for novel
-dependencies. This paper describes a workflow how to access and visualize the
-Depmap data in R using the depmap package.
+The depmap R package facilitates access in the R environment to the data from
+the Depmap project, a multi-year collaborative effort by the Broad Institute and
+Wellcome Sanger Institute mapping genetic and chemical dependencies as well as
+other molecular biological measurements of over 1700 cancer cell lines. The
+depmap R package formats this data for use of popular R data analysis and
+visualizing tools such as `dplyr` and `ggplot2` to represent and visualize these
+rich datasets. In addition, the depmap R package utilizes `ExperimentHub`,
+storing versions of the Depmap data accessible from the Cloud, which may be
+selectively downloaded, providing a reproducible research framework to support
+exploiting this data. This paper describes a workflow how to access and
+visualize the Depmap data in R using the depmap package.
 
 # Keywords
 
@@ -541,9 +527,9 @@ BiocManager::install('depmap', version = 'devel')
 package:
 
 ```{r}
-install.packages('devtools')
-library(devtools)
-install_github('uclouvain-cbio/depmap')
+# install.packages('devtools')
+# library(devtools)
+# install_github('uclouvain-cbio/depmap')
 ```
 
 # Session information
