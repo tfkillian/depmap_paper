@@ -17,7 +17,7 @@ vignette: >
 
 ```{r style, echo = FALSE, results = 'asis'}
 BiocStyle::markdown()
-# ^[2](https://depmap.org/portal/download/)^
+# http://bioconductor.org/packages/release/bioc/vignettes/BiocWorkflowTools/inst/doc/Generate_F1000_Latex.html
 ```
 
 # Abstract
@@ -132,6 +132,7 @@ library("gridExtra")
 library("stringr")
 library("depmap")
 library("ExperimentHub")
+library("plotly")
 ```
 
 Load the `rnai`, `crispr` and `copyNumber` datasets for visualization from the
@@ -142,12 +143,135 @@ Load the `rnai`, `crispr` and `copyNumber` datasets for visualization from the
 eh <- ExperimentHub()
 query(eh, "depmap")
 
-# note: the datasets listed above are from the 19Q1 release. Newer datasets,
-# such as 19Q2 and 19Q3 are available.
-rnai <- eh[["EH2260"]]
-crispr <- eh[["EH2261"]]
-copyNumber <- eh[["EH2262"]]
+  # EH3080 | rnai_19Q3            
+  # EH3081 | crispr_19Q3          
+  # EH3082 | copyNumber_19Q3      
+  # EH3083 | RPPA_19Q3            
+  # EH3084 | TPM_19Q3             
+  # EH3085 | mutationCalls_19Q3   
+  # EH3086 | metadata_19Q3        
+  # EH3087 | drug_sensitivity_19Q3
+
+## note: the datasets listed above are from the 19Q1 release. Newer datasets,
+## such as 19Q2 and 19Q3 are available.
+rnai <- eh[["EH3080"]]
+#crispr <- eh[["EH3081"]]
+copyNumber <- eh[["EH3082"]]
+TPM <- eh[["EH3084"]]
+# RPPA <- eh[["EH3083"]]
+mutationCalls <- eh[["EH3085"]]
+metadata <- eh[["EH3086"]]
+# EH3087 | drug_sensitivity_19Q3
 ```
+
+```{r message=FALSE, warning=FALSE}
+# Basic histogram
+rnai %>% select(gene, gene_name, dependency) %>% 
+         filter(gene_name == "PIK3CA") %>% 
+         ggplot(aes(x=dependency)) + geom_histogram() +
+         geom_vline(xintercept=mean(rnai$dependency, na.rm = TRUE),
+                    linetype = "dotted", color = "red") +
+         ggtitle("Histogram of dependency scores for gene PIK3CA")
+```
+
+```{r message=FALSE, warning=FALSE}
+meta_rnai <- metadata %>%
+  select(depmap_id, lineage) %>%
+  full_join(rnai, by = "depmap_id") %>%
+  filter(gene_name == "PIK3CA") %>% 
+  full_join((mutationCalls %>% select(depmap_id, entrez_id, is_cosmic_hotspot, var_annotation)),
+                      by = c("depmap_id", "entrez_id")) # %>% 
+  #full_join((TPM %>% select(depmap_id, gene, expression)),
+  #                    by = c("depmap_id", "gene"))   
+
+p1 <- meta_rnai %>% ggplot(aes(x=dependency, y=lineage, #text = paste("expression:", expression)
+                               )) +
+  geom_point(alpha = 0.4, size = 0.5) +
+  geom_point(data = subset(meta_rnai, var_annotation == "damaging"), color = "red") +
+  geom_point(data = subset(meta_rnai, var_annotation == "other non-conserving"), color = "blue") +
+  geom_point(data = subset(meta_rnai, var_annotation == "other conserving"), color = "cyan") +
+  geom_point(data = subset(meta_rnai, is_cosmic_hotspot == TRUE), color = "orange") +
+  geom_vline(xintercept=mean(meta_rnai$dependency, na.rm = TRUE), linetype = "dotted", color = "red") +
+  ggtitle("Scatterplot of dependency scores for gene PIK3CA by lineage")
+
+ggplotly(p1)
+```
+
+```{r}
+rm(p1)
+rm(meta_rnai)
+```
+
+```{r}
+meta_tpm <- metadata %>%
+            select(depmap_id, lineage) %>%
+            full_join(TPM, by = "depmap_id") %>%
+            filter(gene_name == "PIK3CA")
+
+p2 <- meta_tpm %>%
+      ggplot(aes(x=lineage, y=expression, fill = lineage)) +
+      geom_boxplot(outlier.alpha = 0.1) +
+      ggtitle("Boxplot of expression values for gene PIK3CA by lineage")
+p2 <- p2 + theme(axis.text.x = element_text(angle = 45))
+ggplotly(p2)
+```
+
+```{r}
+rm(p2)
+rm(meta_tpm)
+```
+
+Let's try this again with RNAI
+
+```{r}
+# expression vs rnai gene dependency for Rhabdomyosarcoma Sarcoma
+sarcoma <- metadata %>%
+           select(depmap_id, cell_line, primary_disease, subtype_disease) %>%
+           filter(primary_disease == "Sarcoma",
+                  subtype_disease == "Rhabdomyosarcoma")
+rnai_sub <- rnai %>% dplyr::select(depmap_id, gene, gene_name, dependency)
+tpm_sub <- TPM %>% dplyr::select(depmap_id, gene, gene_name, expression)
+sarcoma_dep <- sarcoma %>%
+               left_join(rnai_sub, by = "depmap_id") %>%
+               select(-cell_line, -primary_disease, -subtype_disease, -gene_name)
+sarcoma_exp <- sarcoma %>% left_join(tpm_sub, by = "depmap_id")
+sarcoma_dat_exp <- full_join(sarcoma_dep, sarcoma_exp,
+                             by = c("depmap_id", "gene"))
+
+p3 <- ggplot(data=sarcoma_dat_exp, aes(x=dependency, y=expression,
+                                       text = paste("gene:", gene_name))) +
+      geom_point(alpha = 0.4, size = 0.5) +
+      geom_vline(xintercept=mean(sarcoma_dat_exp$dependency, na.rm = TRUE), linetype = "dotted", color = "red") +
+      geom_hline(yintercept=mean(sarcoma_dat_exp$expression, na.rm = TRUE), linetype = "dotted", color = "red") +
+      ggtitle("Scatterplot of rnai dependency vs expression values for gene PIK3CA")  
+ggplotly(p3)
+```
+
+```{r}
+rm(p3)
+rm(sarcoma)
+rm(rnai_sub)
+rm(tpm_sub)
+rm(sarcoma_dep)
+rm(sarcoma_exp)
+rm(sarcoma_dat_exp)
+```
+
+```{r}
+# copy number by lineage
+meta_copy <- metadata %>%
+            select(depmap_id, lineage) %>%
+            full_join(copyNumber, by = "depmap_id") %>%
+            filter(gene_name == "PIK3CA")
+
+p4 <- meta_copy %>%
+      ggplot(aes(x=lineage, y=log_copy_number, fill = lineage)) +
+      geom_boxplot(outlier.alpha = 0.1) +
+      ggtitle("Boxplot of log copy number for gene PIK3CA by lineage")
+p4 <- p4 + theme(axis.text.x = element_text(angle = 45))
+ggplotly(p4)
+```
+
 
 ## Find dependency score for "BRCA1" on "184A1_Breast"
 
@@ -523,6 +647,9 @@ Find genes with greatest mean log copy number
 
 # Discussion and Outlook
 
+We hope that this package will be used by cancer researchers to dig deeper into
+the Depmap data and to support their research.
+
 The depmap R package will continue to be maintained in line with the biannual
 Bioconductor release, in addition to quarterly releases of Depmap data.
 
@@ -531,9 +658,9 @@ contributions to the code in the form of pull requests.
 
 # Software availability
 
-Please note that this manuscript uses version 1.0 of the depmap R package, which
-is in the development version of Bioconductor (v.3.10). There are two possible
-ways of installing it:
+Please note that this manuscript uses version 1.10 of the depmap R package,
+which is in the development version of Bioconductor (v.3.10). There are two
+possible ways of installing it:
 
 1) Install the development version of R (v.3.6) — required for Bioconductor
 v.3.10 — and install depmap using the command:
