@@ -143,25 +143,20 @@ Load the `rnai`, `crispr` and `copyNumber` datasets for visualization from the
 eh <- ExperimentHub()
 query(eh, "depmap")
 
-  # EH3080 | rnai_19Q3            
-  # EH3081 | crispr_19Q3          
-  # EH3082 | copyNumber_19Q3      
-  # EH3083 | RPPA_19Q3            
-  # EH3084 | TPM_19Q3             
-  # EH3085 | mutationCalls_19Q3   
-  # EH3086 | metadata_19Q3        
-  # EH3087 | drug_sensitivity_19Q3
-
-## note: the datasets listed above are from the 19Q1 release. Newer datasets,
-## such as 19Q2 and 19Q3 are available.
-rnai <- eh[["EH3080"]]
-#crispr <- eh[["EH3081"]]
-copyNumber <- eh[["EH3082"]]
-TPM <- eh[["EH3084"]]
+# rnai <- eh[["EH3080"]]
+# crispr <- eh[["EH3081"]]
+# copyNumber <- eh[["EH3082"]]
+# TPM <- eh[["EH3084"]]
 # RPPA <- eh[["EH3083"]]
+# mutationCalls <- eh[["EH3085"]]
+# metadata <- eh[["EH3086"]]
+# drug_sensitivity <- eh[["EH3087"]]
+```
+
+```{r}
+rnai <- eh[["EH3080"]]
 mutationCalls <- eh[["EH3085"]]
 metadata <- eh[["EH3086"]]
-# EH3087 | drug_sensitivity_19Q3
 ```
 
 ```{r message=FALSE, warning=FALSE}
@@ -203,6 +198,10 @@ rm(meta_rnai)
 ```
 
 ```{r}
+TPM <- eh[["EH3084"]]
+```
+
+```{r}
 meta_tpm <- metadata %>%
             select(depmap_id, lineage) %>%
             full_join(TPM, by = "depmap_id") %>%
@@ -220,8 +219,6 @@ ggplotly(p2)
 rm(p2)
 rm(meta_tpm)
 ```
-
-Let's try this again with RNAI
 
 ```{r}
 # expression vs rnai gene dependency for Rhabdomyosarcoma Sarcoma
@@ -249,12 +246,17 @@ ggplotly(p3)
 
 ```{r}
 rm(p3)
-rm(sarcoma)
+#rm(sarcoma)
 rm(rnai_sub)
 rm(tpm_sub)
 rm(sarcoma_dep)
 rm(sarcoma_exp)
 rm(sarcoma_dat_exp)
+rm(TPM)
+```
+
+```{r}
+copyNumber <- eh[["EH3082"]]
 ```
 
 ```{r}
@@ -270,6 +272,32 @@ p4 <- meta_copy %>%
       ggtitle("Boxplot of log copy number for gene PIK3CA by lineage")
 p4 <- p4 + theme(axis.text.x = element_text(angle = 45))
 ggplotly(p4)
+```
+
+```{r}
+rm(meta_copy)
+rm(copyNumber)
+rm(p4)
+```
+
+```{r}
+drug_sensitivity <- eh[["EH3087"]]
+```
+
+```{r}
+# copy number by lineage
+sarcoma_drugs <- drug_sensitivity %>%
+                 select(depmap_id, compound, dependency) %>%
+                 right_join(sarcoma, by = "depmap_id") %>%
+                 arrange(dependency)
+
+saveRDS(sarcoma_drugs, file = "sarcoma_drugs.rds")
+# p5 <- meta_copy %>%
+#       ggplot(aes(x=lineage, y=dependency, fill = lineage)) +
+#       geom_boxplot(outlier.alpha = 0.1) +
+#       ggtitle("Boxplot of chemical dependency by lineage")
+# p5 <- p4 + theme(axis.text.x = element_text(angle = 45))
+# ggplotly(p4)
 ```
 
 
